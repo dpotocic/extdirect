@@ -234,12 +234,15 @@ class ExtDirectManager extends Component
         $api = [
             'url'        => $this->getApiUrl(),
             'type'       => 'remoting',
-            'namespace'  => $this->async ? $this->namespace : null,
             'actions'    => $this->getActionsList()
         ];
 
         if ($this->id) {
             $api['id'] = $this->id;
+        }
+
+        if ($this->async && $this->namespace) {
+            $api['namespace'] = $this->namespace;
         }
 
         if ($this->timeout) {
@@ -259,6 +262,8 @@ class ExtDirectManager extends Component
         $this->namespace = {};
         $this->descriptor = $apiJson;
 JAVASCRIPT;
+
+        return $jsTemplate;
     }
 
     public function getSyncJsTemplate($apiJson){
@@ -267,6 +272,7 @@ JAVASCRIPT;
         Ext.ns("$this->namespace");
         $this->descriptor = $apiJson;
 JAVASCRIPT;
+        return $jsTemplate;
     }
 
     /**
