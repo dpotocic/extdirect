@@ -61,7 +61,27 @@ class ExtDirectManager extends Component
      * @var bool debug mode
      */
     public $debug = false;
-    
+
+    /**
+     * @var string Routing path for module controllers
+     */
+    public $moduleName = null;
+
+    /**
+     * @var string Timeout for API calls
+     */
+    public $timeout = null;
+
+    /**
+     * @var string Total property for API
+     */
+    public $total = null;
+
+    /**
+     * @var string is loading API definition async
+     */
+    public $async = true;
+
     /**
      * @inheritdoc
      */
@@ -214,7 +234,7 @@ class ExtDirectManager extends Component
         $api = [
             'url'        => $this->getApiUrl(),
             'type'       => 'remoting',
-            'namespace'  => $this->namespace,
+            'namespace'  => $this->async ? $this->namespace : null,
             'actions'    => $this->getActionsList()
         ];
 
@@ -222,7 +242,31 @@ class ExtDirectManager extends Component
             $api['id'] = $this->id;
         }
 
+        if ($this->timeout) {
+            $api['timeout'] = $this->timeout;
+        }
+
+        if ($this->total) {
+            $api['total'] = $this->total;
+        }
+
         return $api;
+    }
+
+    public function getJsTemplate($apiJson){
+        $jsTemplate =
+<<<JAVASCRIPT
+        $this->namespace = {};
+        $this->descriptor = $apiJson;
+JAVASCRIPT;
+    }
+
+    public function getSyncJsTemplate($apiJson){
+        $jsTemplate =
+<<<JAVASCRIPT
+        Ext.ns("$this->namespace");
+        $this->descriptor = $apiJson;
+JAVASCRIPT;
     }
 
     /**
@@ -232,12 +276,7 @@ class ExtDirectManager extends Component
     {
         $apiJson = $this->getApiJson();
 
-        $jsTemplate = <<<JAVASCRIPT
-
-$this->namespace = {};
-$this->descriptor = $apiJson;
-
-JAVASCRIPT;
+        $jsTemplate = $this->async ? $this->getJsTemplate($apiJson) : $this->getSyncJsTemplate($apiJson);
 
         Yii::$app->response->headers->add('Content-Type', 'application/javascript');
         return $jsTemplate;
@@ -324,7 +363,7 @@ JAVASCRIPT;
                 $params = $params[0];
             }
             $routeInfo = Yii::$app->createController($route);
-            $response['result'] = $routeInfo[0]->runAction($routeInfo[1], $params);
+            $response['result'] = $routeInfo[0]->runAction(($this->moduleName ? $this->moduleName . '/' : '') . $routeInfo[1], $params);
         } catch (\Exception $e) {
             if ($e instanceof HttpException) {
                 Yii::$app->response->setStatusCode($e->statusCode);
