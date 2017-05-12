@@ -6,6 +6,7 @@ use yii;
 use yii\base\Action;
 use yii\helpers\Json;
 use yii\web\Response;
+use yii\web\Request;
 
 /**
  * Class ExtDirectAction returns server's API and handles the request
@@ -18,7 +19,7 @@ class ExtDirectAction extends Action
 {
     protected $requestBody;
 
-    protected $isPost = false;
+    protected $isFormHandler = false;
     /**
      * Attach response behavior to controller where the action is.
      *    - raw text in case of getting API
@@ -27,9 +28,11 @@ class ExtDirectAction extends Action
     public function init()
     {
 
-        $this->isPost = Yii::$app->request->isPost;
+        $contentType = Yii::$app->request->getContentType();
 
-        if(!$this->isPost){
+        if($contentType == 'application/x-www-form-urlencoded; charset=UTF-8'){
+            $this->isFormHandler = true;
+        }else{
             $this->requestBody = Json::decode(Yii::$app->request->getRawBody());
         }
 
@@ -37,7 +40,7 @@ class ExtDirectAction extends Action
             $this->controller->attachBehavior('responseFormatter', [
                     'class' => 'yii\filters\ContentNegotiator',
                     'formats' => [
-                        !$this->requestBody && !$this->isPost ? Response::FORMAT_RAW : Response::FORMAT_JSON,
+                        !$this->requestBody && !$this->isFormHandler ? Response::FORMAT_RAW : Response::FORMAT_JSON,
                     ]
                 ]);
         }
@@ -52,13 +55,14 @@ class ExtDirectAction extends Action
      */
     public function run($api = null)
     {
-        if (!$this->requestBody && !$this->isPost) {
+        if (!$this->requestBody && !$this->isFormHandler) {
             return Yii::$app->extDirect->getApi($api);
-        } else if ($this->isPost) {
+        } else if ($this->isFormHandler) {
             $this->requestBody = [];
             $this->requestBody['tid'] = Yii::$app->request->post('extTID');
             $this->requestBody['action'] = Yii::$app->request->post('extAction');
             $this->requestBody['method'] = Yii::$app->request->post('extMethod');
+            $this->requestBody['data'] = [];
             return $this->processRequest($this->requestBody);
         } else {
             return $this->processRequest($this->requestBody);
