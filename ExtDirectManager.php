@@ -160,12 +160,14 @@ class ExtDirectManager extends Component
 
             $docBlock = $method->getDocComment();
             preg_match('/@direct/', $docBlock, $annotation);
+            preg_match('/@formHandler/', $docBlock, $formHandler);
 
             if (!empty($annotation[0])) {
                 $annotatedActions[$this->getControllerName($className)][] = [
                     'name' => lcfirst($actionNameChunks[1]),
                     'len' => $this->getParamsNumber($method),
-                    'params' => $this->getParameters($method)
+                    'params' => $this->getParameters($method),
+                    'formHandler'=> !empty($formHandler[0])
                 ];
             }
         }
@@ -197,7 +199,7 @@ class ExtDirectManager extends Component
 
         return $actionsPrepared;
     }
-    
+
     /**
      * Get number of parameters
      * @param \ReflectionMethod $method
@@ -206,8 +208,8 @@ class ExtDirectManager extends Component
     private function getParamsNumber($method)
     {
         return $method->getNumberOfRequiredParameters() ?
-               $method->getNumberOfRequiredParameters() :
-               $method->getNumberOfParameters();
+            $method->getNumberOfRequiredParameters() :
+            $method->getNumberOfParameters();
     }
 
     /**
@@ -277,8 +279,8 @@ class ExtDirectManager extends Component
 
     public function getJsTemplate($apiJson){
         $jsTemplate =
-<<<JAVASCRIPT
-        $this->namespace = {};
+            <<<JAVASCRIPT
+                    $this->namespace = {};
         $this->descriptor = $apiJson;
 JAVASCRIPT;
 
@@ -287,8 +289,8 @@ JAVASCRIPT;
 
     public function getSyncJsTemplate($apiJson){
         $jsTemplate =
-<<<JAVASCRIPT
-        Ext.ns("$this->namespace");
+            <<<JAVASCRIPT
+                    Ext.ns("$this->namespace");
         $this->descriptor = $apiJson;
 JAVASCRIPT;
         return $jsTemplate;
@@ -415,11 +417,11 @@ JAVASCRIPT;
 
             if ($this->debug) {
                 $response['result'] = array_merge($response['result'], [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'type' => get_class($e),
-                ]);
+                        'message' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'type' => get_class($e),
+                    ]);
             }
         }
 

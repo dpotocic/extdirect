@@ -18,6 +18,7 @@ class ExtDirectAction extends Action
 {
     protected $requestBody;
 
+    protected $isPost = false;
     /**
      * Attach response behavior to controller where the action is.
      *    - raw text in case of getting API
@@ -25,15 +26,20 @@ class ExtDirectAction extends Action
      */
     public function init()
     {
-        $this->requestBody = Json::decode(Yii::$app->request->getRawBody());
+
+        $this->isPost = Yii::$app->request->isPost;
+
+        if(!$this->isPost){
+            $this->requestBody = Json::decode(Yii::$app->request->getRawBody());
+        }
 
         if (!$this->controller->getBehavior('responseFormatter')) {
             $this->controller->attachBehavior('responseFormatter', [
-                'class' => 'yii\filters\ContentNegotiator',
+                    'class' => 'yii\filters\ContentNegotiator',
                     'formats' => [
-                        !$this->requestBody ? Response::FORMAT_RAW : Response::FORMAT_JSON,
+                        !$this->requestBody && !$this->isPost ? Response::FORMAT_RAW : Response::FORMAT_JSON,
                     ]
-            ]);
+                ]);
         }
 
         parent::init();
@@ -46,8 +52,14 @@ class ExtDirectAction extends Action
      */
     public function run($api = null)
     {
-        if (!$this->requestBody) {
+        if (!$this->requestBody && !$this->isPost) {
             return Yii::$app->extDirect->getApi($api);
+        } else if ($this->isPost) {
+            $this->requestBody = [];
+            $this->requestBody['tid'] = Yii::$app->request->post('extTID');
+            $this->requestBody['action'] = Yii::$app->request->post('extAction');
+            $this->requestBody['method'] = Yii::$app->request->post('extMethod');
+            return $this->processRequest($this->requestBody);
         } else {
             return $this->processRequest($this->requestBody);
         }
