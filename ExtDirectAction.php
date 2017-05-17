@@ -20,6 +20,7 @@ class ExtDirectAction extends Action
     protected $requestBody;
 
     protected $isFormHandler = false;
+    protected $isFormUpload = false;
     /**
      * Attach response behavior to controller where the action is.
      *    - raw text in case of getting API
@@ -32,6 +33,9 @@ class ExtDirectAction extends Action
 
         if($contentType == 'application/x-www-form-urlencoded; charset=UTF-8'){
             $this->isFormHandler = true;
+        }elseif(substr($contentType, 0, 20) == 'multipart/form-data;'){
+            $this->isFormUpload = true;
+            $this->requestBody = Yii::$app->request->getRawBody();
         }else{
             $this->requestBody = Json::decode(Yii::$app->request->getRawBody());
         }
@@ -55,9 +59,17 @@ class ExtDirectAction extends Action
      */
     public function run($api = null)
     {
-        if (!$this->requestBody && !$this->isFormHandler) {
+
+        if (!$this->requestBody && !$this->isFormHandler && !$this->isFormUpload) {
             return Yii::$app->extDirect->getApi($api);
-        } else if ($this->isFormHandler) {
+        } else if ($this->isFormHandler && !$this->isFormUpload) {
+            $this->requestBody = [];
+            $this->requestBody['tid'] = Yii::$app->request->post('extTID');
+            $this->requestBody['action'] = Yii::$app->request->post('extAction');
+            $this->requestBody['method'] = Yii::$app->request->post('extMethod');
+            $this->requestBody['data'] = [];
+            return $this->processRequest($this->requestBody);
+        } else if ($this->isFormUpload) {
             $this->requestBody = [];
             $this->requestBody['tid'] = Yii::$app->request->post('extTID');
             $this->requestBody['action'] = Yii::$app->request->post('extAction');
